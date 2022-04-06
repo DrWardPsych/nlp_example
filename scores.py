@@ -1,7 +1,7 @@
 import pandas as pd
 import pickle
-import ingest_firebase
 from datetime import date
+import extract_time
 
 
 def budgeting_score(user_data):
@@ -45,6 +45,28 @@ def budgeting_score(user_data):
     ideal_wants=round(sum(df.amount)*0.3)
 
 
-    print(f'Your budgeting score on {date.today().isoformat()} is {budgeting_score}. The maximum attainable score is 100')
-    print(f'The perfect budgeting score for this period would be achieved by spending £{ideal_essentials} on essentials and investing £{ideal_save} in your future self, which would leave £{ideal_wants} for fun!')
+    #print(f'Your budgeting score on {date.today().isoformat()} is {budgeting_score}. The maximum attainable score is 100')
+    #print(f'The perfect budgeting score for this period would be achieved by spending £{ideal_essentials} on essentials and investing £{ideal_save} in your future self, which would leave £{ideal_wants} for fun!')
 
+    return budgeting_score
+
+def weekly_score(df):
+
+    b_score=[]   
+    df_dates = extract_time.create_time_bins(df)
+    for i in df_dates.index:
+        start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+        end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+        df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+        score = budgeting_score(df_week)
+        b_score.append(score)
+    #print(b_score)
+    df_dates['score']=b_score
+    df_dates['rolling_average']=df_dates['score'].rolling(4).mean().fillna(df_dates.score.mean())   
+    current_score = round(sum(b_score[-4:])/4)
+
+    print(f'Budgeting score: {current_score}')
+
+    print(f'Your budgeting score on {date.today().isoformat()} is {round(sum(b_score[-4:])/4)}. The maximum attainable score is 100')
+    
+    return df_dates
