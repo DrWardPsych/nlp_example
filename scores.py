@@ -3,6 +3,78 @@ import pickle
 from datetime import date
 import extract_time
 
+# def weekly_score(df:pd.DataFrame): #,score:str):
+    
+#     ''' '''
+
+#     b_score=[]   
+#     df_dates = extract_time.create_time_bins(df)
+#     for i in df_dates.index:
+#         start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+#         end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+#         df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+#         score = budgeting_score(df_week)
+#         b_score.append(score)
+   
+#     df_dates['score']=b_score
+#     df_dates['rolling_average']=df_dates['score'].rolling(4).mean().fillna(df_dates.score.mean())   
+#     current_score = round(sum(b_score[-4:])/4)
+
+#     print(f'Budgeting score: {current_score}')
+
+#     print(f'Your budgeting score on {date.today().isoformat()} is {round(sum(b_score[-4:])/4)}. The maximum attainable score is 100')
+    
+#     return df_dates
+
+def weekly_score(df:pd.DataFrame,measure:str):
+    
+    ''' '''
+
+    b_score=[]   
+    df_dates = extract_time.create_time_bins(df)
+    print(df_dates.index)
+    for i in df_dates.index:
+
+        if measure == 'outgoings':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = outgoings(df_week)
+            b_score.append(score)
+
+        elif measure == 'essential outgoings':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = essential_outgoings(df_week)
+            b_score.append(score)
+
+        elif measure == 'budgeting score':                                                      ## <-- can this go into a dict??
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = budgeting_score(df_week)
+            b_score.append(score)
+
+        elif measure == 'income':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = income(df_week)
+            b_score.append(score)
+
+    #print(b_score)
+    df_dates['score']=b_score
+    df_dates['rolling_average']=round(df_dates['score'].rolling(4).mean().fillna(df_dates.score.mean()),2)
+    df_dates = df_dates.rename(columns={'score':f'{measure}'})   
+    current_score = round(sum(b_score[-4:])/4)
+
+    print(f'Average {measure} for past 4 weeks: {current_score}')
+
+    #print(f'Your budgeting score on {date.today().isoformat()} is {round(sum(b_score[-4:])/4)}. The maximum attainable score is 100')
+    
+    return df_dates
+
 
 def budgeting_score(user_data):
 
@@ -40,9 +112,9 @@ def budgeting_score(user_data):
             
             
     budgeting_score = round(100-sum(df.ideal_diff))
-    ideal_save=round(sum(df.amount)*0.2)
-    ideal_essentials=round(sum(df.amount)*0.5)
-    ideal_wants=round(sum(df.amount)*0.3)
+    #ideal_save=round(sum(df.amount)*0.2)
+    #ideal_essentials=round(sum(df.amount)*0.5)
+    #ideal_wants=round(sum(df.amount)*0.3)
 
 
     #print(f'Your budgeting score on {date.today().isoformat()} is {budgeting_score}. The maximum attainable score is 100')
@@ -50,23 +122,31 @@ def budgeting_score(user_data):
 
     return budgeting_score
 
-def weekly_score(df):
 
-    b_score=[]   
-    df_dates = extract_time.create_time_bins(df)
-    for i in df_dates.index:
-        start = pd.Timestamp(df_dates.iloc[i]['per_start'])
-        end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
-        df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
-        score = budgeting_score(df_week)
-        b_score.append(score)
-    #print(b_score)
-    df_dates['score']=b_score
-    df_dates['rolling_average']=df_dates['score'].rolling(4).mean().fillna(df_dates.score.mean())   
-    current_score = round(sum(b_score[-4:])/4)
+def outgoings(df):
 
-    print(f'Budgeting score: {current_score}')
-
-    print(f'Your budgeting score on {date.today().isoformat()} is {round(sum(b_score[-4:])/4)}. The maximum attainable score is 100')
+    ''' '''
     
-    return df_dates
+    df_outgoings = df[df.type=='DEBIT']
+    outgoings = round(0-df_outgoings['amount'].sum(),2)
+
+    return outgoings
+
+def income(df):
+
+    ''' '''
+    
+    df_income = df[df.type=='CREDIT']
+    income = round(df_income['amount'].sum(),2)
+
+    return income
+
+
+def essential_outgoings(df):
+
+    ''' '''
+
+    df_essentials=df[(df.need_want=='Essential')|((df.transaction_class=='Loans&Credit')&(df.type=='DEBIT'))]
+    essentials = round(0-df_essentials['amount'].sum(),2)
+
+    return essentials

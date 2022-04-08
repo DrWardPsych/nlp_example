@@ -39,6 +39,8 @@ def budget_pie(user_data):
 
 def spend_bar(user_data):
 
+    ''' '''
+
     df = pd.DataFrame(user_data[user_data.type=='DEBIT'].groupby('transaction_class')['amount'].sum()).reset_index()
     df.amount=0-df.amount
     
@@ -51,7 +53,9 @@ def spend_bar(user_data):
     
     plt.show()
 
-def weekly_b_score(df):    
+def weekly_b_score(df:pd.DataFrame,measure:str):    
+
+    ''' '''
     # set figure size
     plt.figure( figsize = ( 12, 5))
 
@@ -60,13 +64,13 @@ def weekly_b_score(df):
     # plot a simple time series plot
     # using seaborn.lineplot()
     sns.lineplot( x = 'per_end',
-                y = 'score',
+                y = measure,
                 data = df,
                 color='hotpink',
                 label = 'Weekly Score')
     
     # # plot using rolling average
-    pal = sns.dark_palette('purple',2)
+    
     sns.lineplot( x = 'per_end',
                 y = 'rolling_average',
                 data = df,
