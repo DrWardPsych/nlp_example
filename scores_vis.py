@@ -57,7 +57,7 @@ def weekly_b_score(df:pd.DataFrame,measure:str):
 
     ''' '''
     # set figure size
-    plt.figure( figsize = ( 12, 5))
+    plt.figure( figsize = ( 12, 8))
 
     df = df.copy()
     
@@ -67,7 +67,7 @@ def weekly_b_score(df:pd.DataFrame,measure:str):
                 y = measure,
                 data = df,
                 color='hotpink',
-                label = 'Weekly Score')
+                label = f'Weekly {measure}')
     
     # # plot using rolling average
     
@@ -87,4 +87,4 @@ def weekly_b_score(df:pd.DataFrame,measure:str):
     lab = pd.Series(pos).index[::-1]
     
     plt.xticks( pos, lab)
-    plt.ylabel('Budgeting Score')
+    plt.ylabel(f'{measure}')

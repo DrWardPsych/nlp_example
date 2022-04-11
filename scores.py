@@ -3,34 +3,14 @@ import pickle
 from datetime import date
 import extract_time
 
-# def weekly_score(df:pd.DataFrame): #,score:str):
-    
-#     ''' '''
-
-#     b_score=[]   
-#     df_dates = extract_time.create_time_bins(df)
-#     for i in df_dates.index:
-#         start = pd.Timestamp(df_dates.iloc[i]['per_start'])
-#         end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
-#         df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
-#         score = budgeting_score(df_week)
-#         b_score.append(score)
-   
-#     df_dates['score']=b_score
-#     df_dates['rolling_average']=df_dates['score'].rolling(4).mean().fillna(df_dates.score.mean())   
-#     current_score = round(sum(b_score[-4:])/4)
-
-#     print(f'Budgeting score: {current_score}')
-
-#     print(f'Your budgeting score on {date.today().isoformat()} is {round(sum(b_score[-4:])/4)}. The maximum attainable score is 100')
-    
-#     return df_dates
+def user_scores_all(df:pd.DataFrame):
+    pass
 
 def weekly_score(df:pd.DataFrame,measure:str):
     
     ''' '''
 
-    b_score=[]   
+    measure_score=[]   
     df_dates = extract_time.create_time_bins(df)
     print(df_dates.index)
     for i in df_dates.index:
@@ -40,34 +20,42 @@ def weekly_score(df:pd.DataFrame,measure:str):
             end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
             df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
             score = outgoings(df_week)
-            b_score.append(score)
+            measure_score.append(score)
 
         elif measure == 'essential outgoings':
             start = pd.Timestamp(df_dates.iloc[i]['per_start'])
             end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
             df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
             score = essential_outgoings(df_week)
-            b_score.append(score)
+            measure_score.append(score)
 
         elif measure == 'budgeting score':                                                      ## <-- can this go into a dict??
             start = pd.Timestamp(df_dates.iloc[i]['per_start'])
             end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
             df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
             score = budgeting_score(df_week)
-            b_score.append(score)
+            measure_score.append(score)
 
         elif measure == 'income':
             start = pd.Timestamp(df_dates.iloc[i]['per_start'])
             end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
             df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
             score = income(df_week)
-            b_score.append(score)
+            measure_score.append(score)
+
+        elif measure == 'affordability':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = affordability(df_week)
+            measure_score.append(score)
+
 
     #print(b_score)
-    df_dates['score']=b_score
+    df_dates['score']=measure_score
     df_dates['rolling_average']=round(df_dates['score'].rolling(4).mean().fillna(df_dates.score.mean()),2)
     df_dates = df_dates.rename(columns={'score':f'{measure}'})   
-    current_score = round(sum(b_score[-4:])/4)
+    current_score = round(sum(measure_score[-4:])/4)
 
     print(f'Average {measure} for past 4 weeks: {current_score}')
 
@@ -121,6 +109,23 @@ def budgeting_score(user_data):
     #print(f'The perfect budgeting score for this period would be achieved by spending £{ideal_essentials} on essentials and investing £{ideal_save} in your future self, which would leave £{ideal_wants} for fun!')
 
     return budgeting_score
+
+def affordability(user_data:pd.DataFrame):
+
+    ''' '''
+    
+    df_week = user_data.drop_duplicates(subset='timestamp').copy()
+
+    daily_affordability=[]
+    
+    for bal in df_week['runningBalance.amount']:
+        if bal < 160:
+            daily_affordability.append(1)
+        else:
+            daily_affordability.append(0)
+        affordability = round(100-(sum(daily_affordability)/len(df_week)*100),2)
+
+    return affordability
 
 
 def outgoings(df):
