@@ -1,0 +1,8 @@
+Other features to include in the modelling:
+
+Average balance for the month
+Credit turnover for the month
+Balance at the end of the month
+minimum balance attained during the month
+maximum balance attained during the month
+current overdraft excess

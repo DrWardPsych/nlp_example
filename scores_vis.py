@@ -62,7 +62,6 @@ def weekly_b_score(df:pd.DataFrame,measure:str):
     df = df.copy()
     
     # plot a simple time series plot
-    # using seaborn.lineplot()
     sns.lineplot( x = 'per_end',
                 y = measure,
                 data = df,
@@ -72,7 +71,7 @@ def weekly_b_score(df:pd.DataFrame,measure:str):
     # # plot using rolling average
     
     sns.lineplot( x = 'per_end',
-                y = 'rolling_average',
+                y = f'rolling {measure}',
                 data = df,
                 color='aquamarine',
                 label = 'Rollingavg')

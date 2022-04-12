@@ -4,6 +4,13 @@ from datetime import timedelta
 
 def create_time_bins(user_data:pd.DataFrame,timescale:str='W'):
 
+    ''' '''
+    if timescale == 'W':
+        days = 6
+
+    elif timescale == 'M':
+        days = 28
+        
     df = user_data.copy()
 
     scores_time = pd.DataFrame(columns=['per_start','per_end','score'])
@@ -16,7 +23,7 @@ def create_time_bins(user_data:pd.DataFrame,timescale:str='W'):
         starts.append(start)
 
     scores_time['per_start']=starts
-    scores_time['per_end']=pd.to_datetime(scores_time.per_start+timedelta(days=6))
+    scores_time['per_end']=pd.to_datetime(scores_time.per_start+timedelta(days=days))
 
     #start = pd.to_datetime(scores_time.iloc[0]['per_start'])
     #end =  pd.to_datetime(scores_time.iloc[0]['per_end'])
