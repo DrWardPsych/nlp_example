@@ -1,8 +1,10 @@
 import pandas as pd
-import pickle
+import numpy as np
 from datetime import date
 import extract_time
+import importlib
 import f_wellbeing
+importlib.reload(f_wellbeing)
 
 def user_scores_all(df:pd.DataFrame):
     pass
@@ -50,6 +52,14 @@ def weekly_score(df:pd.DataFrame,measure:str):
             df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
             score = f_wellbeing.affordability(df_week)
             measure_score.append(score)
+
+        elif measure == 'preparedness':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = f_wellbeing.preparedness(df_week,monthly_essentials(df))
+            measure_score.append(score)
+
 
     
     df_dates['score']=measure_score
@@ -138,3 +148,25 @@ def essential_outgoings(df):
     essentials = round(0-df_essentials['amount'].sum(),2)
 
     return essentials
+
+def monthly_essentials(user_data:pd.DataFrame):
+
+    ''' '''
+
+    df = user_data.copy()
+    #create monthly time bins
+    df_dates = extract_time.create_time_bins(df,'M')
+    outgoings = []
+
+    for i in df_dates.index:
+        start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+        end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+        # create df containing all dates within the time bin parameters
+        df_month = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+        # calculate total essential outgoings for the period
+        ess_out = round(0-(df_month[(df_month.need_want=='Essential')|((df_month.transaction_class=='Loans&Credit')&(df_month.type=='DEBIT'))]['amount'].sum()),2)
+        outgoings.append(ess_out)
+    #print(f'average monthly essential spend: £{np.mean(outgoings)}')
+    monthly_essentials=np.mean(outgoings)
+
+    return monthly_essentials
