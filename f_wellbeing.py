@@ -68,8 +68,11 @@ def charges():
     pass
 
 
-def BNPL():
+def BNPL(user_data:pd.DataFrame):
 
     ''' '''
 
-    pass
+    df_bnpl = user_data.copy()
+    bnpl_count = df_bnpl.bnpl_scores.sum()
+    
+    return bnpl_count

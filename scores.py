@@ -6,8 +6,45 @@ import importlib
 import f_wellbeing
 importlib.reload(f_wellbeing)
 
-def user_scores_all(df:pd.DataFrame):
-    pass
+def score_profile(user_data:pd.DataFrame):
+
+    data = user_data.copy()
+
+    feature_list=['income','outgoings','budgeting score','affordability','preparedness','bnpl count']
+    scores_list=[]
+    scores_dict={}
+    scores_dict['timestamp']=date.today().strftime("%d-%b-%Y")
+
+    for feature in feature_list:
+        scores_dict[feature]=weekly_score(data,feature)
+        scores_list.append(weekly_score(data,feature))
+
+    wellbeing_scores=[]
+
+    if 100-scores_dict['affordability']>=75:
+        wellbeing_scores.append(0)
+    elif (100-scores_dict['affordability']<75)&(100-scores_dict['affordability']>=1):
+        wellbeing_scores.append(1)
+    elif 100-scores_dict['affordability']==0:
+        wellbeing_scores.append(2)
+
+    if scores_dict['preparedness']<=25:
+        wellbeing_scores.append(0)
+    elif (scores_dict['preparedness']>25)&(scores_dict['preparedness'])<=99:
+        wellbeing_scores.append(1)
+    else:
+        wellbeing_scores.append(2)
+
+    if scores_dict['bnpl count']==0:
+        wellbeing_scores.append(0)
+    else:
+        wellbeing_scores.append(1)
+
+    observed_wellbeing = sum(wellbeing_scores)*(100/5)
+
+    scores_dict['observed wellbeing'] = observed_wellbeing
+
+    return scores_dict
 
 def weekly_score(df:pd.DataFrame,measure:str):
     
@@ -15,7 +52,7 @@ def weekly_score(df:pd.DataFrame,measure:str):
 
     measure_score=[]   
     df_dates = extract_time.create_time_bins(df)
-    print(df_dates.index)
+    #print(df_dates.index)
     for i in df_dates.index:
 
         if measure == 'outgoings':
@@ -60,6 +97,16 @@ def weekly_score(df:pd.DataFrame,measure:str):
             score = f_wellbeing.preparedness(df_week,monthly_essentials(df))
             measure_score.append(score)
 
+        elif measure == 'bnpl count':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = f_wellbeing.BNPL(df_week)
+            if score > 0:
+                measure_score.append(score)
+            else:
+                measure_score.append(0)
+
 
     
     df_dates['score']=measure_score
@@ -67,11 +114,11 @@ def weekly_score(df:pd.DataFrame,measure:str):
     df_dates = df_dates.rename(columns={'score':f'{measure}'})   
     current_score = round(sum(measure_score[-4:])/4)
 
-    print(f'Average {measure} for past 4 weeks: {current_score}')
+    #print(f'Average {measure} for past 4 weeks: {current_score}')
 
     #print(f'Your budgeting score on {date.today().isoformat()} is {round(sum(b_score[-4:])/4)}. The maximum attainable score is 100')
     
-    return df_dates
+    return current_score
 
 
 def budgeting_score(user_data):

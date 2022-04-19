@@ -25,8 +25,6 @@ def create_time_bins(user_data:pd.DataFrame,timescale:str='W'):
     scores_time['per_start']=starts
     scores_time['per_end']=pd.to_datetime(scores_time.per_start+timedelta(days=days))
 
-    #start = pd.to_datetime(scores_time.iloc[0]['per_start'])
-    #end =  pd.to_datetime(scores_time.iloc[0]['per_end'])
 
     return scores_time
 
