@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+from scipy.interpolate import make_interp_spline, BSpline
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import extract_time
@@ -39,6 +41,8 @@ def budget_pie(user_data):
 
 def spend_bar(user_data):
 
+    ''' '''
+
     df = pd.DataFrame(user_data[user_data.type=='DEBIT'].groupby('transaction_class')['amount'].sum()).reset_index()
     df.amount=0-df.amount
     
@@ -51,24 +55,25 @@ def spend_bar(user_data):
     
     plt.show()
 
-def weekly_b_score(df):    
+def weekly_b_score(df:pd.DataFrame,measure:str):    
+
+    ''' '''
     # set figure size
-    plt.figure( figsize = ( 12, 5))
+    plt.figure( figsize = ( 12, 8))
 
     df = df.copy()
     
     # plot a simple time series plot
-    # using seaborn.lineplot()
     sns.lineplot( x = 'per_end',
-                y = 'score',
+                y = measure,
                 data = df,
                 color='hotpink',
-                label = 'Weekly Score')
+                label = f'Weekly {measure}')
     
     # # plot using rolling average
-    pal = sns.dark_palette('purple',2)
+    
     sns.lineplot( x = 'per_end',
-                y = 'rolling_average',
+                y = f'rolling {measure}',
                 data = df,
                 color='aquamarine',
                 label = 'Rollingavg')
@@ -83,4 +88,61 @@ def weekly_b_score(df):
     lab = pd.Series(pos).index[::-1]
     
     plt.xticks( pos, lab)
-    plt.ylabel('Budgeting Score')
+    plt.ylabel(f'{measure}')
+
+
+def weekly_score_smooth(df:pd.DataFrame,measure:str):    
+
+    ''' '''
+    # set figure size
+    plt.figure( figsize = ( 12, 8))
+
+    df = df.copy()
+    x1 = df.per_end.index
+    y1 = df[measure]
+
+    xnew = np.linspace(x1.min(), x1.max(), 200)
+
+    spl = make_interp_spline(x1, y1, k=5)
+    y_smooth = spl(xnew)
+
+    plt.plot(xnew,y_smooth)
+
+    df = df.copy()
+    x2 = df.per_end.index
+    y2 = df[f'rolling {measure}']
+
+    xnew2 = np.linspace(x2.min(), x2.max(), 200)
+
+    spl2 = make_interp_spline(x2, y2, k=5)
+    y_smooth2 = spl2(xnew)
+
+    plt.plot(xnew2,y_smooth2)
+
+
+    # # plot a simple time series plot
+    # sns.lineplot( x = xnew,
+    #             y = y_smooth,
+    #             data = df,
+    #             color='hotpink',
+    #             label = f'Weekly {measure}')
+    
+    # # # plot using rolling average
+    
+    # sns.lineplot( x = 'per_end',
+    #             y = f'rolling {measure}',
+    #             data = df,
+    #             color='aquamarine',
+    #             label = 'Rollingavg')
+    
+    # plt.xlabel('Weeks before using GW app')
+    
+    # # setting customized ticklabels for x axis
+    # pos = [ '2021-12-18', '2021-12-25', '2022-01-01','2022-01-08','2022-01-15','2022-01-22',
+    # '2022-01-29','2022-02-05','2022-02-12','2022-02-19','2022-02-26','2022-03-05','2022-03-12']
+
+    
+    # lab = pd.Series(pos).index[::-1]
+    
+    # plt.xticks( pos, lab)
+    # plt.ylabel(f'{measure}')

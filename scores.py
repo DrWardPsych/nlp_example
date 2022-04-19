@@ -1,7 +1,124 @@
 import pandas as pd
-import pickle
+import numpy as np
 from datetime import date
 import extract_time
+import importlib
+import f_wellbeing
+importlib.reload(f_wellbeing)
+
+def score_profile(user_data:pd.DataFrame):
+
+    data = user_data.copy()
+
+    feature_list=['income','outgoings','budgeting score','affordability','preparedness','bnpl count']
+    scores_list=[]
+    scores_dict={}
+    scores_dict['timestamp']=date.today().strftime("%d-%b-%Y")
+
+    for feature in feature_list:
+        scores_dict[feature]=weekly_score(data,feature)
+        scores_list.append(weekly_score(data,feature))
+
+    wellbeing_scores=[]
+
+    if 100-scores_dict['affordability']>=75:
+        wellbeing_scores.append(0)
+    elif (100-scores_dict['affordability']<75)&(100-scores_dict['affordability']>=1):
+        wellbeing_scores.append(1)
+    elif 100-scores_dict['affordability']==0:
+        wellbeing_scores.append(2)
+
+    if scores_dict['preparedness']<=25:
+        wellbeing_scores.append(0)
+    elif (scores_dict['preparedness']>25)&(scores_dict['preparedness'])<=99:
+        wellbeing_scores.append(1)
+    else:
+        wellbeing_scores.append(2)
+
+    if scores_dict['bnpl count']==0:
+        wellbeing_scores.append(0)
+    else:
+        wellbeing_scores.append(1)
+
+    observed_wellbeing = sum(wellbeing_scores)*(100/5)
+
+    scores_dict['observed wellbeing'] = observed_wellbeing
+
+    return scores_dict
+
+def weekly_score(df:pd.DataFrame,measure:str):
+    
+    ''' '''
+
+    measure_score=[]   
+    df_dates = extract_time.create_time_bins(df)
+    #print(df_dates.index)
+    for i in df_dates.index:
+
+        if measure == 'outgoings':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = outgoings(df_week)
+            measure_score.append(score)
+
+        elif measure == 'essential outgoings':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = essential_outgoings(df_week)
+            measure_score.append(score)
+
+        elif measure == 'budgeting score':                                                      ## <-- can this go into a dict??
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = budgeting_score(df_week)
+            measure_score.append(score)
+
+        elif measure == 'income':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = income(df_week)
+            measure_score.append(score)
+
+        elif measure == 'affordability':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = f_wellbeing.affordability(df_week)
+            measure_score.append(score)
+
+        elif measure == 'preparedness':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = f_wellbeing.preparedness(df_week,monthly_essentials(df))
+            measure_score.append(score)
+
+        elif measure == 'bnpl count':
+            start = pd.Timestamp(df_dates.iloc[i]['per_start'])
+            end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
+            df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+            score = f_wellbeing.BNPL(df_week)
+            if score > 0:
+                measure_score.append(score)
+            else:
+                measure_score.append(0)
+
+
+    
+    df_dates['score']=measure_score
+    df_dates[f'rolling {measure}']=round(df_dates['score'].rolling(4).mean().fillna(df_dates.score.mean()),2)
+    df_dates = df_dates.rename(columns={'score':f'{measure}'})   
+    current_score = round(sum(measure_score[-4:])/4)
+
+    #print(f'Average {measure} for past 4 weeks: {current_score}')
+
+    #print(f'Your budgeting score on {date.today().isoformat()} is {round(sum(b_score[-4:])/4)}. The maximum attainable score is 100')
+    
+    return current_score
 
 
 def budgeting_score(user_data):
@@ -40,9 +157,9 @@ def budgeting_score(user_data):
             
             
     budgeting_score = round(100-sum(df.ideal_diff))
-    ideal_save=round(sum(df.amount)*0.2)
-    ideal_essentials=round(sum(df.amount)*0.5)
-    ideal_wants=round(sum(df.amount)*0.3)
+    #ideal_save=round(sum(df.amount)*0.2)
+    #ideal_essentials=round(sum(df.amount)*0.5)
+    #ideal_wants=round(sum(df.amount)*0.3)
 
 
     #print(f'Your budgeting score on {date.today().isoformat()} is {budgeting_score}. The maximum attainable score is 100')
@@ -50,23 +167,53 @@ def budgeting_score(user_data):
 
     return budgeting_score
 
-def weekly_score(df):
 
-    b_score=[]   
-    df_dates = extract_time.create_time_bins(df)
+def outgoings(df):
+
+    ''' '''
+    
+    df_outgoings = df[df.type=='DEBIT']
+    outgoings = round(0-df_outgoings['amount'].sum(),2)
+
+    return outgoings
+
+def income(df):
+
+    ''' '''
+    
+    df_income = df[df.type=='CREDIT']
+    income = round(df_income['amount'].sum(),2)
+
+    return income
+
+
+def essential_outgoings(df):
+
+    ''' '''
+
+    df_essentials=df[(df.need_want=='Essential')|((df.transaction_class=='Loans&Credit')&(df.type=='DEBIT'))]
+    essentials = round(0-df_essentials['amount'].sum(),2)
+
+    return essentials
+
+def monthly_essentials(user_data:pd.DataFrame):
+
+    ''' '''
+
+    df = user_data.copy()
+    #create monthly time bins
+    df_dates = extract_time.create_time_bins(df,'M')
+    outgoings = []
+
     for i in df_dates.index:
         start = pd.Timestamp(df_dates.iloc[i]['per_start'])
         end =  pd.Timestamp(df_dates.iloc[i]['per_end'])
-        df_week = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
-        score = budgeting_score(df_week)
-        b_score.append(score)
-    #print(b_score)
-    df_dates['score']=b_score
-    df_dates['rolling_average']=df_dates['score'].rolling(4).mean().fillna(df_dates.score.mean())   
-    current_score = round(sum(b_score[-4:])/4)
+        # create df containing all dates within the time bin parameters
+        df_month = df[(df.timestamp.dt.date>=start)&(df.timestamp.dt.date<end)]
+        # calculate total essential outgoings for the period
+        ess_out = round(0-(df_month[(df_month.need_want=='Essential')|((df_month.transaction_class=='Loans&Credit')&(df_month.type=='DEBIT'))]['amount'].sum()),2)
+        outgoings.append(ess_out)
+    #print(f'average monthly essential spend: £{np.mean(outgoings)}')
+    monthly_essentials=np.mean(outgoings)
 
-    print(f'Budgeting score: {current_score}')
-
-    print(f'Your budgeting score on {date.today().isoformat()} is {round(sum(b_score[-4:])/4)}. The maximum attainable score is 100')
-    
-    return df_dates
+    return monthly_essentials
