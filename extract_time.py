@@ -4,7 +4,19 @@ from datetime import timedelta
 
 def create_time_bins(user_data:pd.DataFrame,timescale:str='W'):
 
-    ''' '''
+    ''' 
+    
+    Function creates weekly or monthly timebins to aggregate scores and transaction data.
+    
+        Args:
+            user_data: pd.DataFrame containing processed transaction data including risk flags, BNPL, classifications.
+            timescale: size of timebins (week 'W', month 'M')
+            
+        Returns:
+            scores_time: pd.DataFrame containing start and end dates for each time bin 
+            
+    '''
+
     if timescale == 'W':
         days = 6
 
@@ -30,9 +42,19 @@ def create_time_bins(user_data:pd.DataFrame,timescale:str='W'):
 
 def get_key_dates(user_data):
 
-    ''' '''
+    ''' 
+    
+    Function creates dictionary of key dates to support create_time_bins function 
+    
+        Args:
+            user_data: pd.DataFrame containing processed transaction data including risk flags, BNPL, classifications.
+            
+        Returns:
+            dates (dict): dictionary containing key dates (oldest transaction, most recent transaction, start of last month, start of last week, last full day) 
+            
+    '''
 
-    df = user_data   
+    df = user_data.copy()
 
     oldest_transaction = df.timestamp.dt.date.min(),
     recent_transaction = df.timestamp.dt.date.max(),
