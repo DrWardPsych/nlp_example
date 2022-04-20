@@ -1,5 +1,6 @@
 import extract_time
 import pandas as pd
+import numpy as np
 
 def outgoings(user_data:pd.DataFrame):
 
