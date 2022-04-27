@@ -4,7 +4,9 @@ import pandas as pd
 
 def budgeting_score(user_data):
 
-    ''' '''
+    ''' Essentials, wants and future investments are calculated as a proportion of weekly spend, expressed as a ratio (e.g. 40:30:30). A weekly budgeting score is derived as the deviation of this ratio away from the ideal spend ratio of 50:30:20 for Essentials, Wants, and Future, respectively. 
+        In order to capture a long-term view of users’ budgeting skill, the overall budgeting score is calculated as the average of the prior 12 weeks’ budgeting scores, recalculated each time the user refreshes their transaction data.  
+    '''
    
     df_week = pd.DataFrame(user_data[user_data.type=='DEBIT'].groupby('need_want')['amount'].sum()).reset_index().rename(columns={'need_want':'classification'})
     df = df_week.copy()

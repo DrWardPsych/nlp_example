@@ -3,11 +3,7 @@ import numpy as np
 from datetime import date
 import extract_time
 import importlib
-import f_wellbeing
-import finances
-import b_score
-importlib.reload(f_wellbeing)
-importlib.reload(extract_time)
+import f_wellbeing, finances, b_score
 
 def score_profile(user_data:pd.DataFrame):
 
